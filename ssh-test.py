@@ -1,9 +1,34 @@
-from netmiko import ConnectHandler
-import getpass
-import os
+from __future__ import absolute_import, division, print_function
 
-USERNAME = input("Enter your username: ")
-PASSWORD = getpass.getpass("Enter your password: ")
+from netmiko import ConnectHandler
+from getpass import getpass
+import os
+import signal
+import sys
+
+#signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # IOError: Broken pipe
+#signal.signal(signal.SIGINT, signal.SIG_DFL)  # KeyboardInterrupt: Ctrl-C
+
+def get_input(prompt=''):
+    try:
+        line = raw_input(prompt)
+    except NameError:
+        line = input(prompt)
+    return line
+
+def get_credentials():
+    """Prompt for and return a username and password."""
+    USERNAME = get_input('Enter Username: ')
+    PASSWORD = None
+    while not PASSWORD:
+        PASSWORD = getpass()
+        password_verify = getpass('Retype your password: ')
+        if PASSWORD != password_verify:
+            print('Passwords do not match.  Try again.')
+            PASSWORD = None
+    return USERNAME, PASSWORD
+
+USERNAME, PASSWORD = get_credentials()
 
 devices = open('devices.txt','r').read()
 devices = devices.strip()
@@ -15,7 +40,8 @@ unreachable = 0
 
 for device in devices:
     try:
-        net_connect = ConnectHandler(device_type='cisco_ios_ssh', ip=device, username=USERNAME, password=PASSWORD)
+        net_connect = ConnectHandler(device_type='cisco_ios_ssh', ip=device,
+                                     username=USERNAME, password=PASSWORD)
         net_connect.config_mode()
         if net_connect.check_config_mode() is True:
             net_connect.disconnect()
